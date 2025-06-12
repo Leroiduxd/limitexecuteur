@@ -9,6 +9,7 @@ app.use(express.json());
 const CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS;
 const RPC_URL = process.env.RPC_URL;
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
+const API_KEY = process.env.API_KEY;
 
 const ABI = [
   {
@@ -24,10 +25,15 @@ const ABI = [
 ];
 
 const provider = new ethers.providers.JsonRpcProvider(RPC_URL);
-const wallet = new ethers.Wallet(PRIVATE_KEY, provider);
+const wallet = new ethers.Wallet(PRIVATE_KEY.trim(), provider);
 const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, wallet);
 
 app.post('/execute', async (req, res) => {
+  const clientApiKey = req.headers['x-api-key'];
+  if (clientApiKey !== API_KEY) {
+    return res.status(403).json({ error: 'Forbidden: Invalid API Key' });
+  }
+
   const { orderId, index } = req.body;
   if (typeof orderId === 'undefined' || typeof index === 'undefined') {
     return res.status(400).json({ error: 'orderId and index are required' });
@@ -49,5 +55,5 @@ app.post('/execute', async (req, res) => {
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
-  console.log(`🟢 Executor API running on port ${port}`);
+  console.log(`🟢 Protected Executor API running on port ${port}`);
 });
